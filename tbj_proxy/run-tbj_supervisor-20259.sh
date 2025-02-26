@@ -1,0 +1,1 @@
+sh tbj_supervisor-20259.sh >>log-tbj-20259.log 2>&1 &

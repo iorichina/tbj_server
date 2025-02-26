@@ -1,0 +1,1 @@
+sh tbj_supervisor-20256.sh >>log-tbj-20256.log 2>&1 &
