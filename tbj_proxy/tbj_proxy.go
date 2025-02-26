@@ -45,16 +45,16 @@ func main() {
 }
 
 func (m *TbjProxy) tcpServer() {
-	logger := log.New(os.Stdout, "tcpServer ", log.Lmsgprefix|log.Ldate|log.Lmicroseconds)
+	logger := log.New(os.Stdout, "[tcpServer]", log.Lmsgprefix|log.Ldate|log.Lmicroseconds)
 	listen, err := net.Listen("tcp", m.listenAddr) // 监听端口
 	if err != nil {
-		logger.Printf("Listen to %v failed terminate %#v\n", m.listenAddr, err)
+		logger.Printf("Listen to %v failed terminate %v\n", m.listenAddr, err)
 		return
 	}
 	for {
 		conn, err := listen.Accept() // 监听tbj的连接请求
 		if err != nil {
-			logger.Printf("%v Accept() failed, err: %v\t%#v\n", m.listenAddr, err.Error(), err)
+			logger.Printf("%v Accept() failed, err: %v\n", m.listenAddr, err)
 			continue
 		}
 		go m.serverProcess(conn) // 启动一个goroutine来处理tbj的连接请求
@@ -67,14 +67,14 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Printf("Recovered from panic: %#v", r)
+			logger.Printf("Recovered from panic: %v", r)
 		}
 	}()
 
 	defer func(tbjConn net.Conn) {
 		err := tbjConn.Close()
 		if err != nil {
-			logger.Printf("tbjConn Close err %v\t%#v\n", err.Error(), err)
+			logger.Printf("tbjConn Close err %v\n", err)
 		} else {
 			logger.Printf("tbjConn Closed\n")
 		}
@@ -90,7 +90,7 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 	defer func(serverConn net.Conn) {
 		err := serverConn.Close()
 		if err != nil {
-			logger.Printf("serverConn Close err %v\t%#v\n", err.Error(), err)
+			logger.Printf("serverConn Close err %v\n", err)
 		} else {
 			logger.Printf("serverConn Closed\n")
 		}
