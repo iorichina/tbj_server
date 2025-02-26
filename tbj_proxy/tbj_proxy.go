@@ -195,7 +195,7 @@ func (m *TbjProxy) handleTbj(macChan, macChanTbj chan string, tbjConn, serverCon
 
 		if n > 8 && 0xFE == dup[0] && 0x01 == dup[3] {
 			if 0x31 == dup[7] || 0x34 == dup[7] || 0x35 == dup[7] {
-				logger.Printf("Write %#v(%d) to remote[%v] res %v\n", dup[7], int(buf[1])*256+int(buf[2]), serverConn.RemoteAddr(), err)
+				logger.Printf("Sent %#v(%d) to remote[%v] res %v\n", dup[7], int(buf[1])*256+int(buf[2]), serverConn.RemoteAddr(), err)
 			}
 		}
 	}
@@ -243,7 +243,7 @@ func (m *TbjProxy) handleServer(macChan, macChanServer chan string, tbjConn, ser
 
 		if n > 8 && 0xFE == dup[0] && 0x01 == dup[3] {
 			if 0x31 == dup[7] || 0x34 == dup[7] || 0x35 == dup[7] {
-				logger.Printf("Write %#v(%d) to tbj [%v] res %v\n", dup[7], int(buf[1])*256+int(buf[2]), tbjConn.RemoteAddr(), err)
+				logger.Printf("Sent %#v(%d) to tbj [%v] res %v\n", dup[7], int(buf[1])*256+int(buf[2]), tbjConn.RemoteAddr(), err)
 			}
 		}
 	}
