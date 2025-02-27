@@ -70,7 +70,7 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 		if r := recover(); r != nil {
 			logger.Printf("Recovered from panic: err in serverProcess %v", r)
 		}
-	}()
+	}() //panic处理
 
 	defer func(tbjConn net.Conn) {
 		err := tbjConn.Close()
@@ -101,17 +101,12 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 
 	//tbj或server连接任意一个报错都断开两个连接，让tbj自动重连
 	tbjErrChan := make(chan error)
-	defer close(tbjErrChan)
 	serverErrChan := make(chan error)
-	defer close(serverErrChan)
 
 	//用于日志增加mac
 	macChan := make(chan string, 128)
-	defer close(macChan)
 	macChanTbj := make(chan string, 128)
-	defer close(macChanTbj)
 	macChanServer := make(chan string, 128)
-	defer close(macChanServer)
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -126,6 +121,8 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 			macChanTbj <- m
 			macChanServer <- m
 		}
+		defer close(macChanTbj)
+		defer close(macChanServer)
 	}()
 
 	go m.handleTbj(macChan, macChanTbj, tbjConn, serverConn, tbjErrChan)
@@ -133,10 +130,10 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 
 	select {
 	case err = <-tbjErrChan:
-		logger.Printf("Connection tbj err %v, both disconnect\n", err)
+		logger.Printf("Connection tbj err %v, disconnect all\n", err)
 		return
 	case err = <-serverErrChan:
-		logger.Printf("Connection server err %v, both disconnect\n", err)
+		logger.Printf("Connection server err %v, disconnect all\n", err)
 		return
 	}
 }
@@ -144,6 +141,14 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 func (m *TbjProxy) handleTbj(macChan, macChanTbj chan string, tbjConn, serverConn net.Conn, tbjErrChan chan error) {
 	var mac string
 	logger := log.New(os.Stdout, fmt.Sprintf("[%17v]tbj [%v]  ", mac, tbjConn.RemoteAddr()), log.Lmsgprefix|log.Ldate|log.Lmicroseconds)
+
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Printf("Recovered from panic: err in handleTbj %v", r)
+		}
+	}() //panic处理
+	defer close(tbjErrChan)
+	defer close(macChan)
 
 	//日志增加mac
 	go func() {
@@ -225,6 +230,13 @@ func (m *TbjProxy) handleTbj(macChan, macChanTbj chan string, tbjConn, serverCon
 func (m *TbjProxy) handleServer(macChan, macChanServer chan string, tbjConn, serverConn net.Conn, serverErrChan chan error) {
 	var mac string
 	logger := log.New(os.Stdout, fmt.Sprintf("[%17v]serv[%v]  ", mac, serverConn.RemoteAddr()), log.Lmsgprefix|log.Ldate|log.Lmicroseconds)
+
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Printf("Recovered from panic: err in handleServer %v", r)
+		}
+	}() //panic处理
+	defer close(serverErrChan)
 
 	go func() {
 		for m := range macChanServer {
