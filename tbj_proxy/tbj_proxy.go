@@ -46,7 +46,7 @@ func main() {
 
 func (m *TbjProxy) tcpServer() {
 	logger := log.New(os.Stdout, "[tcpServer]", log.Lmsgprefix|log.Ldate|log.Lmicroseconds)
-	listen, err := net.Listen("tcp", m.listenAddr) // 监听端口
+	listen, err := net.Listen("tcp4", m.listenAddr) // 监听端口
 	if err != nil {
 		logger.Printf("Listen to %v failed terminate %v\n", m.listenAddr, err)
 		return
