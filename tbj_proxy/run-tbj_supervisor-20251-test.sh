@@ -1,1 +1,1 @@
-sh tbj_supervisor-20251.sh >>log-tbj-20251.log 2>&1 &
+sh tbj_supervisor-20251-test.sh >>log-tbj-20251-test.log 2>&1 &

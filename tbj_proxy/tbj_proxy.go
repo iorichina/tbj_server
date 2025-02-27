@@ -167,6 +167,7 @@ func (m *TbjProxy) handleTbj(macChan, macChanTbj chan string, tbjConn, serverCon
 			continue
 		}
 
+		logSent := false
 		if n > 8 && 0xFE == buf[0] && 0x01 == buf[3] {
 			if 0x34 == buf[7] {
 				m := strings.Join([]string{string(buf[9:11]), string(buf[11:13]), string(buf[13:15]), string(buf[15:17]), string(buf[17:19]), string(buf[19:21])}, ":")
@@ -175,7 +176,8 @@ func (m *TbjProxy) handleTbj(macChan, macChanTbj chan string, tbjConn, serverCon
 				}
 				mac = m
 				macChan <- m
-				logger.Printf("Read %#v(%d) status %d (0=idle,1=playing,>1=error)\n", buf[7], int(buf[1])*256+int(buf[2]), buf[8])
+				logger.Printf("tbjRead %#v(%d) status %d (0=idle,1=playing,>1=error)\n", buf[7], int(buf[1])*256+int(buf[2]), buf[8])
+				logSent = true
 			} else if 0x35 == buf[7] {
 				m := strings.Join([]string{string(buf[8:10]), string(buf[10:12]), string(buf[12:14]), string(buf[14:16]), string(buf[16:18]), string(buf[18:20])}, ":")
 				if m != mac {
@@ -183,20 +185,33 @@ func (m *TbjProxy) handleTbj(macChan, macChanTbj chan string, tbjConn, serverCon
 				}
 				mac = m
 				macChan <- m
-				logger.Printf("Read %#v(%d) heartbeat\n", buf[7], int(buf[1])*256+int(buf[2]))
+				logger.Printf("tbjRead %#v(%d) heartbeat\n", buf[7], int(buf[1])*256+int(buf[2]))
+				logSent = true
 			} else if 0x31 == buf[7] {
-				logger.Printf("Read %#v(%d) coin % X\n", buf[7], int(buf[1])*256+int(buf[2]), buf[8:10])
+				// logger.Printf("Read %#v(%d) insert coin % X\n", buf[7], int(buf[1])*256+int(buf[2]), buf[8:10])
+				logger.Printf("tbjRead %#v(%d) insert coin %d\n", buf[7], int(buf[1])*256+int(buf[2]), int(buf[8])*256+int(buf[9]))
+				logSent = true
+			} else if 0x33 == buf[7] {
+				// 4、	查询获得币数（指令码0x33)
+				logger.Printf("tbjRead %#v(%d) query coin %d\n", buf[7], int(buf[1])*256+int(buf[2]), int(buf[8])*256+int(buf[9]))
+				logSent = true
+			} else if 0x14 == buf[7] {
+				// 8、	与游戏相关（0x14)
+				data := int(buf[8])
+				if data == 0 || data == 1 {
+					logger.Printf("tbjRead %#v(%d) query coin %d\n", buf[7], int(buf[1])*256+int(buf[2]), int(buf[8]))
+					logSent = true
+				}
+			} else {
+				logger.Printf("tbjRead %#v(%d)\n", buf[7], int(buf[1])*256+int(buf[2]))
 			}
 		}
 
 		dup := make([]byte, n)
 		copy(dup, buf[:n])
 		n, err = serverConn.Write(dup)
-
-		if n > 8 && 0xFE == dup[0] && 0x01 == dup[3] {
-			if 0x31 == dup[7] || 0x34 == dup[7] || 0x35 == dup[7] {
-				logger.Printf("Sent %#v(%d) to remote[%v] res %v\n", dup[7], int(buf[1])*256+int(buf[2]), serverConn.RemoteAddr(), err)
-			}
+		if logSent {
+			logger.Printf("tbjSent %#v(%d) to remote[%v] res %v\n", dup[7], int(buf[1])*256+int(buf[2]), serverConn.RemoteAddr(), err)
 		}
 	}
 }
@@ -231,20 +246,24 @@ func (m *TbjProxy) handleServer(macChan, macChanServer chan string, tbjConn, ser
 			continue
 		}
 
+		logSent := false
 		if n > 8 && 0xFE == buf[0] && 0x01 == buf[3] {
 			if 0x31 == buf[7] {
-				logger.Printf("Read %#v(%d) coin % X\n", buf[7], int(buf[1])*256+int(buf[2]), buf[8:10])
+				// logger.Printf("Read %#v(%d) insert coin % X\n", buf[7], int(buf[1])*256+int(buf[2]), buf[8:10])
+				logger.Printf("servRead %#v(%d) insert coin %d\n", buf[7], int(buf[1])*256+int(buf[2]), int(buf[8])*256+int(buf[9]))
+				logSent = true
+			} else if 0x34 == buf[7] {
+				logSent = true
+			} else {
+				logger.Printf("servRead %#v(%d)\n", buf[7], int(buf[1])*256+int(buf[2]))
 			}
 		}
 
 		dup := make([]byte, n)
 		copy(dup, buf[:n])
 		n, err = tbjConn.Write(dup)
-
-		if n > 8 && 0xFE == dup[0] && 0x01 == dup[3] {
-			if 0x31 == dup[7] || 0x34 == dup[7] || 0x35 == dup[7] {
-				logger.Printf("Sent %#v(%d) to tbj [%v] res %v\n", dup[7], int(buf[1])*256+int(buf[2]), tbjConn.RemoteAddr(), err)
-			}
+		if logSent {
+			logger.Printf("servSent %#v(%d) to tbj [%v] res %v\n", dup[7], int(buf[1])*256+int(buf[2]), tbjConn.RemoteAddr(), err)
 		}
 	}
 }
