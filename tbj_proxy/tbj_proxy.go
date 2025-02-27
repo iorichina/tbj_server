@@ -51,6 +51,7 @@ func (m *TbjProxy) tcpServer() {
 		logger.Printf("Listen to %v failed terminate %v\n", m.listenAddr, err)
 		return
 	}
+	logger.Printf("Listened to %v \n", m.listenAddr)
 	for {
 		conn, err := listen.Accept() // 监听tbj的连接请求
 		if err != nil {
@@ -67,7 +68,7 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Printf("Recovered from panic: %v", r)
+			logger.Printf("Recovered from panic: err in serverProcess %v", r)
 		}
 	}()
 
@@ -100,16 +101,23 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 
 	//tbj或server连接任意一个报错都断开两个连接，让tbj自动重连
 	tbjErrChan := make(chan error)
+	defer close(tbjErrChan)
 	serverErrChan := make(chan error)
+	defer close(serverErrChan)
 
 	//用于日志增加mac
 	macChan := make(chan string, 128)
 	defer close(macChan)
 	macChanTbj := make(chan string, 128)
+	defer close(macChanTbj)
 	macChanServer := make(chan string, 128)
+	defer close(macChanServer)
 	go func() {
-		defer close(macChanTbj)
-		defer close(macChanServer)
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Printf("Recovered from panic: err in macChan range %v", r)
+			}
+		}()
 		for m := range macChan {
 			if m != mac {
 				logger.SetPrefix(fmt.Sprintf("[%17v]main([%v]->[%v]) ", m, tbjConn.RemoteAddr(), serverConn.RemoteAddr()))
@@ -134,8 +142,6 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 }
 
 func (m *TbjProxy) handleTbj(macChan, macChanTbj chan string, tbjConn, serverConn net.Conn, tbjErrChan chan error) {
-	defer close(tbjErrChan)
-	defer close(macChan)
 	var mac string
 	logger := log.New(os.Stdout, fmt.Sprintf("[%17v]tbj [%v]  ", mac, tbjConn.RemoteAddr()), log.Lmsgprefix|log.Ldate|log.Lmicroseconds)
 
@@ -217,8 +223,6 @@ func (m *TbjProxy) handleTbj(macChan, macChanTbj chan string, tbjConn, serverCon
 }
 
 func (m *TbjProxy) handleServer(macChan, macChanServer chan string, tbjConn, serverConn net.Conn, serverErrChan chan error) {
-	defer close(serverErrChan)
-	defer close(macChan)
 	var mac string
 	logger := log.New(os.Stdout, fmt.Sprintf("[%17v]serv[%v]  ", mac, serverConn.RemoteAddr()), log.Lmsgprefix|log.Ldate|log.Lmicroseconds)
 
