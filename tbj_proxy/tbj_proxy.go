@@ -27,12 +27,12 @@ func main() {
 	listenAddr := os.Args[1]
 	tbjTimeout, err := strconv.ParseInt(os.Args[2], 10, 64)
 	if err != nil {
-		logger.Fatalf("parse tbj-timeout-millis fail terminate %s", err)
+		logger.Fatalf("parse tbj-timeout-millis fail terminate %s\n", err)
 	}
 	serverAddr := os.Args[3]
 	serverTimeout, err := strconv.ParseInt(os.Args[4], 10, 64)
 	if err != nil {
-		logger.Fatalf("parse server-timeout-millis fail terminate %s", err)
+		logger.Fatalf("parse server-timeout-millis fail terminate %s\n", err)
 	}
 
 	tbjProxy := &TbjProxy{
@@ -68,8 +68,9 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Printf("Recovered from panic: err in serverProcess %v", r)
+			logger.Printf("Recovered from panic: err in serverProcess %v\n", r)
 		}
+		logger.Printf("quit serverProcess\n")
 	}() //panic处理
 
 	defer func(tbjConn net.Conn) {
@@ -85,7 +86,7 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 	// 发起服务器的连接
 	serverConn, err := net.DialTimeout("tcp", m.serverAddr, m.serverTimeout)
 	if nil != err {
-		logger.Printf("server-ip-port unreachable err %v", err)
+		logger.Printf("server-ip-port unreachable err %v\n", err)
 		return
 	}
 	defer func(serverConn net.Conn) {
@@ -110,7 +111,7 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				logger.Printf("Recovered from panic: err in macChan range %v", r)
+				logger.Printf("Recovered from panic: err in macChan range %v\n", r)
 			}
 		}()
 		for m := range macChan {
@@ -130,10 +131,10 @@ func (m *TbjProxy) serverProcess(tbjConn net.Conn) {
 
 	select {
 	case err = <-tbjErrChan:
-		logger.Printf("Connection tbj err %v, disconnect all\n", err)
+		logger.Printf("Connection tbj err %v, disconnect both\n", err)
 		return
 	case err = <-serverErrChan:
-		logger.Printf("Connection server err %v, disconnect all\n", err)
+		logger.Printf("Connection server err %v, disconnect both\n", err)
 		return
 	}
 }
@@ -144,8 +145,9 @@ func (m *TbjProxy) handleTbj(macChan, macChanTbj chan string, tbjConn, serverCon
 
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Printf("Recovered from panic: err in handleTbj %v", r)
+			logger.Printf("Recovered from panic: err in handleTbj %v\n", r)
 		}
+		logger.Printf("quit handleTbj\n")
 	}() //panic处理
 	defer close(tbjErrChan)
 	defer close(macChan)
@@ -233,8 +235,9 @@ func (m *TbjProxy) handleServer(macChan, macChanServer chan string, tbjConn, ser
 
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Printf("Recovered from panic: err in handleServer %v", r)
+			logger.Printf("Recovered from panic: err in handleServer %v\n", r)
 		}
+		logger.Printf("quit handleServer\n")
 	}() //panic处理
 	defer close(serverErrChan)
 
